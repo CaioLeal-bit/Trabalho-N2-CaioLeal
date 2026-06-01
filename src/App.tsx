@@ -10,6 +10,7 @@ import Usuarios from './pages/Usuarios'
 import Assinaturas from './pages/Assinaturas'
 import Certificados from './pages/Certificados'
 import DetalhesCurso from './pages/DetalhesCurso'
+import Planos from './pages/Planos'
 
 import './App.css'
 
@@ -33,6 +34,7 @@ function App() {
               <li className="nav-item"><NavLink className="nav-link" to="/modulos">Módulos</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/aulas">Aulas</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/usuarios">Usuários</NavLink></li>
+              <li className="nav-item"><NavLink className="nav-link" to="/planos">Planos</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/assinaturas">Assinaturas</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/certificados">Certificados</NavLink></li>
             </ul>
@@ -49,6 +51,7 @@ function App() {
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/aulas" element={<Aulas />} />
           <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/planos" element={<Planos />} />
           <Route path="/assinaturas" element={<Assinaturas />} />
           <Route path="/certificados" element={<Certificados />} />
         </Routes>
