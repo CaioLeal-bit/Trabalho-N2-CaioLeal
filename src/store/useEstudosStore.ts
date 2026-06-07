@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import { addMonths } from 'date-fns';
 
-export type Usuario = { id: string; nome: string; email: string; perfil: 'ADMIN' | 'ALUNO' };
+export type Usuario = { id: string; nome: string; email: string; perfil: 'ADMIN' | 'ALUNO'; senha?: string };
 export type Plano = { id: string; nome: string; descricao: string; preco: number; duracaoMeses: number };
 export type Curso = { id: string; titulo: string; descricao: string; instrutor: string; categoria: string; nivel: string; dataPublicacao: string; totalAulas: number; totalHoras: number };
 export type Modulo = { id: string; cursoId: string; titulo: string; ordem: number };
@@ -16,8 +16,10 @@ export type Pagamento = { id: string; assinaturaId: string; valorPago: number; d
 export type Matricula = { id: string; usuarioId: string; cursoId: string; dataMatricula: string };
 export type ProgressoAula = { id: string; usuarioId: string; aulaId: string; dataConclusao?: string; status: 'Nao Iniciado' | 'Em Andamento' | 'Concluido' };
 export type Certificado = { id: string; usuarioId: string; cursoId?: string; trilhaId?: string; codigoValidacao: string; dataEmissao: string };
+export type ToastMessage = { id: string; message: string; type: 'success' | 'error' | 'info' };
 
 type EstudosState = {
+  usuarioLogadoId: string | null;
   usuarios: Usuario[];
   planos: Plano[];
   cursos: Curso[];
@@ -30,6 +32,15 @@ type EstudosState = {
   matriculas: Matricula[];
   progressos: ProgressoAula[];
   certificados: Certificado[];
+  toasts: ToastMessage[];
+
+  // Actions Toast
+  addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  removeToast: (id: string) => void;
+
+  // Actions Auth / Session
+  login: (id: string) => void;
+  logout: () => void;
 
   // Actions Usuarios
   addUsuario: (u: Omit<Usuario, 'id'>) => void;
@@ -63,31 +74,29 @@ type EstudosState = {
   
   // TrilhaCurso (Associativa)
   addTrilhaCurso: (tc: Omit<TrilhaCurso, 'id'>) => void;
+  updateTrilhaCurso: (id: string, tc: Partial<TrilhaCurso>) => void;
   removeTrilhaCurso: (id: string) => void;
 
   // Assinaturas e Pagamentos
   simularAssinatura: (usuarioId: string, planoId: string, metodo: 'Cartao' | 'Pix' | 'Boleto') => void;
+  updateAssinatura: (id: string, a: Partial<Assinatura>) => void;
+  removeAssinatura: (id: string) => void;
 
   // Matriculas
   matricular: (usuarioId: string, cursoId: string) => void;
   
   // Certificados
   emitirCertificado: (usuarioId: string, cursoId?: string, trilhaId?: string) => void;
-};
-
-const recalcularCurso = (cursoId: string, state: EstudosState) => {
-  const modulosDoCurso = state.modulos.filter(m => m.cursoId === cursoId);
-  const aulasDoCurso = state.aulas.filter(a => modulosDoCurso.some(m => m.id === a.moduloId));
-  
-  const totalAulas = aulasDoCurso.length;
-  const totalHoras = Math.ceil(aulasDoCurso.reduce((acc, aula) => acc + aula.duracaoMinutos, 0) / 60);
-
-  return { totalAulas, totalHoras };
+  updateCertificado: (id: string, c: Partial<Certificado>) => void;
+  removeCertificado: (id: string) => void;
+  // Actions Progressos
+  atualizarProgresso: (aulaId: string, status: 'Nao Iniciado' | 'Em Andamento' | 'Concluido') => void;
 };
 
 export const useEstudosStore = create<EstudosState>()(
   persist(
     (set, get) => ({
+      usuarioLogadoId: null,
       usuarios: [],
       planos: [],
       cursos: [],
@@ -100,6 +109,15 @@ export const useEstudosStore = create<EstudosState>()(
       matriculas: [],
       progressos: [],
       certificados: [],
+      toasts: [],
+
+      // TOASTS
+      addToast: (message, type = 'info') => set((state) => ({ toasts: [...state.toasts, { id: uuidv4(), message, type }] })),
+      removeToast: (id) => set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) })),
+
+      // AUTH
+      login: (id) => set({ usuarioLogadoId: id }),
+      logout: () => set({ usuarioLogadoId: null }),
 
       // USUARIOS
       addUsuario: (u) => set((state) => ({ usuarios: [...state.usuarios, { ...u, id: uuidv4() }] })),
@@ -120,7 +138,7 @@ export const useEstudosStore = create<EstudosState>()(
       addModulo: (m) => set((state) => {
         const existeOrdem = state.modulos.some(mod => mod.cursoId === m.cursoId && mod.ordem === m.ordem);
         if (existeOrdem) {
-          alert('Já existe um módulo com esta ordem neste curso!');
+          get().addToast('Já existe um módulo com esta ordem neste curso!', 'error');
           return state;
         }
         return { modulos: [...state.modulos, { ...m, id: uuidv4() }] };
@@ -130,19 +148,29 @@ export const useEstudosStore = create<EstudosState>()(
         if (m.ordem !== undefined && moduloAtual && m.ordem !== moduloAtual.ordem) {
            const existeOrdem = state.modulos.some(mod => mod.cursoId === (m.cursoId || moduloAtual.cursoId) && mod.ordem === m.ordem && mod.id !== id);
            if (existeOrdem) {
-             alert('Já existe um módulo com esta ordem neste curso!');
+             get().addToast('Já existe um módulo com esta ordem neste curso!', 'error');
              return state;
            }
         }
         return { modulos: state.modulos.map(mod => mod.id === id ? { ...mod, ...m } : mod) };
       }),
-      removeModulo: (id) => set((state) => ({ modulos: state.modulos.filter(mod => mod.id !== id) })),
+      removeModulo: (id) => set((state) => {
+        const moduloAtual = state.modulos.find(mod => mod.id === id);
+        if (moduloAtual) {
+           const temAulas = state.aulas.some(aula => aula.moduloId === id);
+           if (temAulas) {
+             get().addToast('Não é possível remover este módulo pois ele contém aulas.', 'error');
+             return state;
+           }
+        }
+        return { modulos: state.modulos.filter(mod => mod.id !== id) };
+      }),
 
       // AULAS
       addAula: (a) => set((state) => {
         const existeOrdem = state.aulas.some(aula => aula.moduloId === a.moduloId && aula.ordem === a.ordem);
         if (existeOrdem) {
-          alert('Já existe uma aula com esta ordem neste módulo!');
+          get().addToast('Já existe uma aula com esta ordem neste módulo!', 'error');
           return state;
         }
         const novaAula = { ...a, id: uuidv4() };
@@ -166,7 +194,7 @@ export const useEstudosStore = create<EstudosState>()(
         if (a.ordem !== undefined && aulaAtual && a.ordem !== aulaAtual.ordem) {
            const existeOrdem = state.aulas.some(aula => aula.moduloId === (a.moduloId || aulaAtual.moduloId) && aula.ordem === a.ordem && aula.id !== id);
            if (existeOrdem) {
-             alert('Já existe uma aula com esta ordem neste módulo!');
+             get().addToast('Já existe uma aula com esta ordem neste módulo!', 'error');
              return state;
            }
         }
@@ -213,11 +241,12 @@ export const useEstudosStore = create<EstudosState>()(
       addTrilhaCurso: (tc) => set((state) => {
          const exists = state.trilhasCursos.some(t => t.trilhaId === tc.trilhaId && t.cursoId === tc.cursoId);
          if (exists) {
-            alert('Curso já está nesta trilha!');
+            get().addToast('Curso já está nesta trilha!', 'error');
             return state;
          }
          return { trilhasCursos: [...state.trilhasCursos, { ...tc, id: uuidv4() }] };
       }),
+      updateTrilhaCurso: (id, tc) => set((state) => ({ trilhasCursos: state.trilhasCursos.map(t => t.id === id ? { ...t, ...tc } : t) })),
       removeTrilhaCurso: (id) => set((state) => ({ trilhasCursos: state.trilhasCursos.filter(t => t.id !== id) })),
 
       // SIMULAR ASSINATURA
@@ -251,12 +280,17 @@ export const useEstudosStore = create<EstudosState>()(
              pagamentos: [...state.pagamentos, novoPagamento]
          };
       }),
+      updateAssinatura: (id, a) => set((state) => ({ assinaturas: state.assinaturas.map(ass => ass.id === id ? { ...ass, ...a } : ass) })),
+      removeAssinatura: (id) => set((state) => ({ 
+        assinaturas: state.assinaturas.filter(ass => ass.id !== id),
+        pagamentos: state.pagamentos.filter(pg => pg.assinaturaId !== id)
+      })),
 
       // MATRICULAR
       matricular: (usuarioId, cursoId) => set((state) => {
          const existe = state.matriculas.some(m => m.usuarioId === usuarioId && m.cursoId === cursoId);
          if (existe) {
-             alert('Usuário já matriculado neste curso!');
+             get().addToast('Usuário já matriculado neste curso!', 'error');
              return state;
          }
          return {
@@ -277,6 +311,110 @@ export const useEstudosStore = create<EstudosState>()(
                  dataEmissao: new Date().toISOString()
              }]
          }
+      }),
+      updateCertificado: (id, c) => set((state) => ({ certificados: state.certificados.map(cert => cert.id === id ? { ...cert, ...c } : cert) })),
+      removeCertificado: (id) => set((state) => ({ certificados: state.certificados.filter(cert => cert.id !== id) })),
+
+      // PROGRESSOS
+      atualizarProgresso: (aulaId, status) => set((state) => {
+         const { usuarioLogadoId, progressos, aulas, modulos, trilhasCursos, certificados } = state;
+         if (!usuarioLogadoId) return state;
+
+         const existenteIdx = progressos.findIndex(p => p.usuarioId === usuarioLogadoId && p.aulaId === aulaId);
+         const newProgressos = [...progressos];
+
+         if (existenteIdx >= 0) {
+            newProgressos[existenteIdx] = { 
+                ...newProgressos[existenteIdx], 
+                status,
+                dataConclusao: status === 'Concluido' ? new Date().toISOString() : undefined 
+            };
+         } else {
+            newProgressos.push({
+                id: uuidv4(),
+                usuarioId: usuarioLogadoId,
+                aulaId,
+                status,
+                dataConclusao: status === 'Concluido' ? new Date().toISOString() : undefined 
+            });
+         }
+
+         // Se for concluído, checar se todas as aulas do curso foram concluídas
+         if (status === 'Concluido') {
+             const aula = aulas.find(a => a.id === aulaId);
+             if (aula) {
+                 const modulo = modulos.find(m => m.id === aula.moduloId);
+                 if (modulo) {
+                     const cursoId = modulo.cursoId;
+                     
+                     // Todas as aulas do curso
+                     const modulosDoCurso = modulos.filter(m => m.cursoId === cursoId);
+                     const aulasDoCurso = aulas.filter(a => modulosDoCurso.some(m => m.id === a.moduloId));
+                     
+                     const todasConcluidas = aulasDoCurso.every(a => {
+                         const prog = newProgressos.find(p => p.usuarioId === usuarioLogadoId && p.aulaId === a.id);
+                         return prog && prog.status === 'Concluido';
+                     });
+
+                     if (todasConcluidas) {
+                         // Verifica se já tem certificado para esse curso
+                         const jaTem = certificados.some(c => c.usuarioId === usuarioLogadoId && c.cursoId === cursoId);
+                         if (!jaTem) {
+                             const codigo = `EST-${new Date().getFullYear()}-${uuidv4().substring(0,8).toUpperCase()}`;
+                             state.certificados.push({
+                                 id: uuidv4(),
+                                 usuarioId: usuarioLogadoId,
+                                 cursoId: cursoId,
+                                 codigoValidacao: codigo,
+                                 dataEmissao: new Date().toISOString()
+                             });
+                             get().addToast('Parabéns! Certificado do curso emitido com sucesso!', 'success');
+                         }
+
+                         // Checar Trilhas que contêm este curso
+                         const trilhasComEsseCurso = trilhasCursos.filter(tc => tc.cursoId === cursoId);
+                         for (const tc of trilhasComEsseCurso) {
+                             const trilhaId = tc.trilhaId;
+                             const cursosDaTrilha = trilhasCursos.filter(t => t.trilhaId === trilhaId);
+                             
+                             // Checar se todos os cursos dessa trilha foram concluidos
+                             let todosCursosDaTrilhaConcluidos = true;
+                             for (const ct of cursosDaTrilha) {
+                                 const cId = ct.cursoId;
+                                 const mCurso = modulos.filter(m => m.cursoId === cId);
+                                 const aCurso = aulas.filter(a => mCurso.some(m => m.id === a.moduloId));
+                                 
+                                 const cConcluido = aCurso.every(a => {
+                                     const p = newProgressos.find(prog => prog.usuarioId === usuarioLogadoId && prog.aulaId === a.id);
+                                     return p && p.status === 'Concluido';
+                                 });
+                                 if (!cConcluido || aCurso.length === 0) {
+                                     todosCursosDaTrilhaConcluidos = false;
+                                     break;
+                                 }
+                             }
+
+                             if (todosCursosDaTrilhaConcluidos) {
+                                 const jaTemTrilha = certificados.some(c => c.usuarioId === usuarioLogadoId && c.trilhaId === trilhaId);
+                                 if (!jaTemTrilha) {
+                                     const codigo = `EST-${new Date().getFullYear()}-${uuidv4().substring(0,8).toUpperCase()}`;
+                                     state.certificados.push({
+                                         id: uuidv4(),
+                                         usuarioId: usuarioLogadoId,
+                                         trilhaId: trilhaId,
+                                         codigoValidacao: codigo,
+                                         dataEmissao: new Date().toISOString()
+                                     });
+                                     get().addToast('Parabéns! Você concluiu a trilha e um certificado foi emitido!', 'success');
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
+         }
+
+         return { progressos: newProgressos, certificados: [...state.certificados] };
       })
     }),
     {

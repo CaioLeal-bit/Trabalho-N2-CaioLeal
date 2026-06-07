@@ -1,63 +1,69 @@
-import { Routes, Route, NavLink, Link, Navigate } from 'react-router-dom'
-import { BookOpen } from 'lucide-react'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ToastContainer from './components/ToastContainer';
 
-// Pages
-import Trilhas from './pages/Trilhas'
-import Cursos from './pages/Cursos'
-import Modulos from './pages/Modulos'
-import Aulas from './pages/Aulas'
-import Usuarios from './pages/Usuarios'
-import Assinaturas from './pages/Assinaturas'
-import Certificados from './pages/Certificados'
-import DetalhesCurso from './pages/DetalhesCurso'
-import Planos from './pages/Planos'
+// Layouts
+import AdminLayout from './layouts/AdminLayout';
+import AlunoLayout from './layouts/AlunoLayout';
 
-import './App.css'
+// Root Pages
+import SelecaoPerfil from './pages/SelecaoPerfil';
+
+// Aluno Pages
+import AlunoDashboard from './pages/aluno/AlunoDashboard';
+import CatalogoCursoDetalhes from './pages/aluno/CatalogoCursoDetalhes';
+import CatalogoTrilhaDetalhes from './pages/aluno/CatalogoTrilhaDetalhes';
+import AlunoAssinaturas from './pages/aluno/AlunoAssinaturas';
+import SalaDeAula from './pages/aluno/SalaDeAula';
+import AlunoCertificados from './pages/aluno/AlunoCertificados';
+
+// Admin Pages
+import Trilhas from './pages/Trilhas';
+import Cursos from './pages/Cursos';
+import Modulos from './pages/Modulos';
+import Aulas from './pages/Aulas';
+import Usuarios from './pages/Usuarios';
+import Assinaturas from './pages/Assinaturas';
+import Certificados from './pages/Certificados';
+import DetalhesCurso from './pages/DetalhesCurso';
+import Planos from './pages/Planos';
+
+import './App.css';
 
 function App() {
   return (
     <>
-      <nav className="navbar navbar-expand-lg">
-        <div className="container-fluid">
-          <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <BookOpen size={28} />
-            <span>EstudaAê</span>
-          </Link>
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto gap-2">
-              <li className="nav-item"><NavLink className="nav-link" to="/trilhas">Trilhas</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/cursos">Cursos</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/modulos">Módulos</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/aulas">Aulas</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/usuarios">Usuários</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/planos">Planos</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/assinaturas">Assinaturas</NavLink></li>
-              <li className="nav-item"><NavLink className="nav-link" to="/certificados">Certificados</NavLink></li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+      <ToastContainer />
+      <Routes>
+      <Route path="/" element={<SelecaoPerfil />} />
+      
+      {/* Rotas de Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="cursos" replace />} />
+        <Route path="trilhas" element={<Trilhas />} />
+        <Route path="cursos" element={<Cursos />} />
+        <Route path="cursos/:id" element={<DetalhesCurso />} />
+        <Route path="modulos" element={<Modulos />} />
+        <Route path="aulas" element={<Aulas />} />
+        <Route path="usuarios" element={<Usuarios />} />
+        <Route path="planos" element={<Planos />} />
+        <Route path="assinaturas" element={<Assinaturas />} />
+        <Route path="certificados" element={<Certificados />} />
+      </Route>
 
-      <main className="d-flex flex-column flex-grow-1 p-3">
-        <Routes>
-          <Route path="/" element={<Navigate to="/cursos" replace />} />
-          <Route path="/trilhas" element={<Trilhas />} />
-          <Route path="/cursos" element={<Cursos />} />
-          <Route path="/cursos/:id" element={<DetalhesCurso />} />
-          <Route path="/modulos" element={<Modulos />} />
-          <Route path="/aulas" element={<Aulas />} />
-          <Route path="/usuarios" element={<Usuarios />} />
-          <Route path="/planos" element={<Planos />} />
-          <Route path="/assinaturas" element={<Assinaturas />} />
-          <Route path="/certificados" element={<Certificados />} />
-        </Routes>
-      </main>
+      {/* Rotas do Aluno */}
+      <Route path="/aluno" element={<AlunoLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AlunoDashboard />} />
+        <Route path="cursos/:id" element={<CatalogoCursoDetalhes />} />
+        <Route path="trilhas/:id" element={<CatalogoTrilhaDetalhes />} />
+        <Route path="assinaturas" element={<AlunoAssinaturas />} />
+        <Route path="sala-aula/:id" element={<SalaDeAula />} />
+        <Route path="certificados" element={<AlunoCertificados />} />
+        {/* Futuras rotas de LMS ficarão aqui */}
+      </Route>
+    </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
