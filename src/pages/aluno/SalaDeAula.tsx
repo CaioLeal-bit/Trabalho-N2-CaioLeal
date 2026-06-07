@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEstudosStore } from '../../store/useEstudosStore';
-import { PlayCircle, CheckCircle, Circle, ArrowLeft, ListVideo } from 'lucide-react';
+import { PlayCircle, CheckCircle, Circle, ArrowLeft, ListVideo, Star } from 'lucide-react';
 
 export default function SalaDeAula() {
   const { id } = useParams(); // ID do curso
   const navigate = useNavigate();
-  const { cursos, modulos, aulas, progressos, atualizarProgresso, usuarioLogadoId, assinaturas } = useEstudosStore();
+  const { cursos, modulos, aulas, progressos, atualizarProgresso, usuarioLogadoId, assinaturas, avaliacoes, addAvaliacao, addToast } = useEstudosStore();
 
   const [aulaAtualId, setAulaAtualId] = useState<string | null>(null);
+  const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false);
+  const [nota, setNota] = useState(5);
+  const [comentario, setComentario] = useState('');
 
   const curso = cursos.find(c => c.id === id);
   const modulosCurso = modulos.filter(m => m.cursoId === id).sort((a, b) => a.ordem - b.ordem);
@@ -48,6 +51,15 @@ export default function SalaDeAula() {
     atualizarProgresso(aulaAtualId, novoStatus);
   };
 
+  const jaAvaliou = avaliacoes.some(a => a.usuarioId === usuarioLogadoId && a.cursoId === id);
+
+  const handleAvaliar = () => {
+    if (!usuarioLogadoId || !id) return;
+    addAvaliacao({ usuarioId: usuarioLogadoId, cursoId: id, nota, comentario });
+    addToast('Avaliação enviada com sucesso!', 'success');
+    setShowAvaliacaoModal(false);
+  };
+
   const getEmbedUrl = (url: string) => {
     if (!url) return null;
     // Transformar youtube watch url to embed url
@@ -73,6 +85,17 @@ export default function SalaDeAula() {
             <h5 className="text-white mb-0 fw-bold">{curso.titulo}</h5>
             <span className="text-muted small">Sala de Aula</span>
           </div>
+        </div>
+        <div>
+          {!jaAvaliou ? (
+            <button className="btn btn-warning btn-sm fw-bold shadow-sm d-flex align-items-center gap-2" onClick={() => setShowAvaliacaoModal(true)}>
+              <Star size={16} fill="currentColor" /> Avaliar Curso
+            </button>
+          ) : (
+            <span className="badge bg-warning text-dark d-flex align-items-center gap-1 p-2">
+              <Star size={14} fill="currentColor" /> Curso Avaliado
+            </span>
+          )}
         </div>
       </div>
 
@@ -200,6 +223,40 @@ export default function SalaDeAula() {
         </div>
 
       </div>
+
+      {/* MODAL DE AVALIAÇÃO */}
+      {showAvaliacaoModal && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 9999 }}>
+          <div className="bg-dark border border-secondary rounded-4 p-4 text-center shadow-lg" style={{ maxWidth: '400px', width: '100%' }}>
+            <h4 className="text-white fw-bold mb-3">Avaliar Curso</h4>
+            <div className="d-flex justify-content-center gap-2 mb-4">
+              {[1,2,3,4,5].map(num => (
+                <Star 
+                  key={num} 
+                  size={36} 
+                  className="transition-all hover-lift"
+                  fill={num <= nota ? '#ffc107' : 'transparent'}
+                  color={num <= nota ? '#ffc107' : '#6c757d'}
+                  onClick={() => setNota(num)}
+                  style={{ cursor: 'pointer' }}
+                />
+              ))}
+            </div>
+            <textarea 
+              className="form-control bg-dark border-secondary text-white mb-4" 
+              rows={3} 
+              placeholder="O que achou do curso? (opcional)"
+              value={comentario}
+              onChange={e => setComentario(e.target.value)}
+            ></textarea>
+            <div className="d-flex gap-2">
+               <button className="btn btn-outline-secondary w-50 fw-bold" onClick={() => setShowAvaliacaoModal(false)}>Cancelar</button>
+               <button className="btn btn-warning text-dark w-50 fw-bold shadow" onClick={handleAvaliar}>Enviar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

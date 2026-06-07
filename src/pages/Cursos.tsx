@@ -5,7 +5,7 @@ import type { Curso } from '../store/useEstudosStore';
 import { Link } from 'react-router-dom';
 
 export default function Cursos() {
-  const { cursos, addCurso, updateCurso, removeCurso } = useEstudosStore();
+  const { cursos, categorias, addCurso, updateCurso, removeCurso } = useEstudosStore();
   
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -108,11 +108,19 @@ export default function Cursos() {
                 </div>
                 
                 <div className="row g-3">
-                  <div className="col-6">
-                    <label className="form-label d-flex align-items-center gap-2">
-                      <Tag size={16} /> Categoria
-                    </label>
-                    <input type="text" className="form-control" placeholder="Ex: Frontend" value={categoria} onChange={e => setCategoria(e.target.value)} required />
+                  <div className="col-12 col-md-6">
+                    <label className="form-label text-muted small">Categoria</label>
+                    <select 
+                      className="form-select bg-dark text-white border-secondary" 
+                      value={categoria}
+                      onChange={e => setCategoria(e.target.value)}
+                      required
+                    >
+                      <option value="">Selecione uma categoria...</option>
+                      {categorias.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-6">
                     <label className="form-label d-flex align-items-center gap-2">

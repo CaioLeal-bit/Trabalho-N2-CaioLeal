@@ -16,10 +16,11 @@ export default function AdminLayout() {
           
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto gap-2">
-              <li className="nav-item"><NavLink className="nav-link" to="/admin/trilhas">Trilhas</NavLink></li>
+              <li className="nav-item"><NavLink className="nav-link" to="/admin/categorias">Categorias</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/cursos">Cursos</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/modulos">Módulos</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/aulas">Aulas</NavLink></li>
+              <li className="nav-item"><NavLink className="nav-link" to="/admin/trilhas">Trilhas</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/usuarios">Usuários</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/planos">Planos</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/admin/assinaturas">Assinaturas</NavLink></li>

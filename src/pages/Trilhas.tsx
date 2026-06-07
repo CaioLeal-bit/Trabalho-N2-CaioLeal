@@ -4,10 +4,11 @@ import { useEstudosStore } from '../store/useEstudosStore';
 import type { Trilha } from '../store/useEstudosStore';
 
 export default function Trilhas() {
-  const { cursos, trilhas, trilhasCursos, addTrilha, updateTrilha, removeTrilha, addTrilhaCurso, updateTrilhaCurso, removeTrilhaCurso, addToast } = useEstudosStore();
+  const { cursos, trilhas, categorias, trilhasCursos, addTrilha, updateTrilha, removeTrilha, addTrilhaCurso, updateTrilhaCurso, removeTrilhaCurso, addToast } = useEstudosStore();
   
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [trilhaEditando, setTrilhaEditando] = useState<string | null>(null);
   
   const [trilhaSelecionada, setTrilhaSelecionada] = useState('');
@@ -18,22 +19,24 @@ export default function Trilhas() {
 
   const handleCriarTrilha = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo || !descricao) return;
+    if (!titulo || !descricao || !categoria) return;
     
     if (trilhaEditando) {
-      updateTrilha(trilhaEditando, { titulo, descricao });
+      updateTrilha(trilhaEditando, { titulo, descricao, categoria });
       setTrilhaEditando(null);
     } else {
-      addTrilha({ titulo, descricao, categoria: 'Geral' });
+      addTrilha({ titulo, descricao, categoria });
     }
     setTitulo('');
     setDescricao('');
+    setCategoria('');
   };
 
   const handleEditTrilha = (trilha: Trilha) => {
     setTrilhaEditando(trilha.id);
     setTitulo(trilha.titulo);
     setDescricao(trilha.descricao);
+    setCategoria(trilha.categoria);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -41,6 +44,7 @@ export default function Trilhas() {
     setTrilhaEditando(null);
     setTitulo('');
     setDescricao('');
+    setCategoria('');
   };
 
   const handleVincularCurso = (e: React.FormEvent) => {
@@ -131,6 +135,15 @@ export default function Trilhas() {
                   </label>
                   <textarea className="form-control" rows={3} placeholder="Objetivo desta trilha..." value={descricao} onChange={e => setDescricao(e.target.value)} required />
                 </div>
+                <div>
+                  <label className="form-label d-flex align-items-center gap-2">
+                    <Tag size={16} /> Categoria
+                  </label>
+                  <select className="form-select bg-dark text-white border-secondary" value={categoria} onChange={e => setCategoria(e.target.value)} required>
+                    <option value="">Selecione uma categoria...</option>
+                    {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nome}</option>)}
+                  </select>
+                </div>
                 <div className="d-flex gap-2 mt-2">
                   <button type="submit" className={`btn ${trilhaEditando ? 'btn-warning text-dark' : 'btn-primary'} flex-grow-1 py-2 fw-bold`}>
                     {trilhaEditando ? 'Salvar Alterações' : 'Criar Trilha'}
@@ -166,7 +179,12 @@ export default function Trilhas() {
                       >
                         <div>
                           <div className="fw-bold text-white mb-1">{trilha.titulo}</div>
-                          <div className="text-muted small">{qtdCursos} cursos vinculados</div>
+                          <div className="text-muted small d-flex align-items-center gap-2">
+                            {qtdCursos} cursos vinculados
+                            <span className="badge bg-secondary bg-opacity-25 text-white">
+                              {categorias.find(c => c.id === trilha.categoria)?.nome || trilha.categoria}
+                            </span>
+                          </div>
                         </div>
                         <div className="d-flex align-items-center gap-2">
                           <button 

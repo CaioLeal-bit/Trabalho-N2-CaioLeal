@@ -20,7 +20,7 @@ export default function SelecaoPerfil() {
     navigate('/aluno/dashboard');
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nomeForm || !emailForm || !senhaForm) return;
 
@@ -30,7 +30,7 @@ export default function SelecaoPerfil() {
       return;
     }
 
-    addUsuario({ nome: nomeForm, email: emailForm, perfil: 'ALUNO', senha: senhaForm });
+    await addUsuario({ nome: nomeForm, email: emailForm, perfil: 'ALUNO', senha: senhaForm });
     
     // Pegar o ID do usuário recém-criado na store e já logar
     const usuariosAtualizados = useEstudosStore.getState().usuarios;

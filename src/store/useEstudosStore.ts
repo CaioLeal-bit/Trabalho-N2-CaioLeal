@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+
 import { v4 as uuidv4 } from 'uuid';
 import { addMonths } from 'date-fns';
 
-export type Usuario = { id: string; nome: string; email: string; perfil: 'ADMIN' | 'ALUNO'; senha?: string };
+export type Usuario = { id: string; nome: string; email: string; perfil: 'ADMIN' | 'ALUNO'; senha?: string; dataCadastro?: string };
+export type Categoria = { id: string; nome: string; descricao: string };
 export type Plano = { id: string; nome: string; descricao: string; preco: number; duracaoMeses: number };
 export type Curso = { id: string; titulo: string; descricao: string; instrutor: string; categoria: string; nivel: string; dataPublicacao: string; totalAulas: number; totalHoras: number };
 export type Modulo = { id: string; cursoId: string; titulo: string; ordem: number };
@@ -13,14 +14,19 @@ export type Trilha = { id: string; titulo: string; descricao: string; categoria:
 export type TrilhaCurso = { id: string; trilhaId: string; cursoId: string; ordem: number };
 export type Assinatura = { id: string; usuarioId: string; planoId: string; dataInicio: string; dataFim: string };
 export type Pagamento = { id: string; assinaturaId: string; valorPago: number; dataPagamento: string; metodo: 'Cartao' | 'Pix' | 'Boleto'; idTransacao: string };
-export type Matricula = { id: string; usuarioId: string; cursoId: string; dataMatricula: string };
+export type Matricula = { id: string; usuarioId: string; cursoId: string; dataMatricula: string; dataConclusao?: string };
 export type ProgressoAula = { id: string; usuarioId: string; aulaId: string; dataConclusao?: string; status: 'Nao Iniciado' | 'Em Andamento' | 'Concluido' };
+export type Avaliacao = { id: string; usuarioId: string; cursoId: string; nota: number; comentario?: string; dataAvaliacao: string };
 export type Certificado = { id: string; usuarioId: string; cursoId?: string; trilhaId?: string; codigoValidacao: string; dataEmissao: string };
 export type ToastMessage = { id: string; message: string; type: 'success' | 'error' | 'info' };
 
+const API_URL = 'http://localhost:3001';
+
 type EstudosState = {
+  fetchInitialData: () => Promise<void>;
   usuarioLogadoId: string | null;
   usuarios: Usuario[];
+  categorias: Categoria[];
   planos: Plano[];
   cursos: Curso[];
   modulos: Modulo[];
@@ -32,72 +38,87 @@ type EstudosState = {
   matriculas: Matricula[];
   progressos: ProgressoAula[];
   certificados: Certificado[];
+  avaliacoes: Avaliacao[];
   toasts: ToastMessage[];
 
   // Actions Toast
-  addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
-  removeToast: (id: string) => void;
+  addToast: (message: string, type?: 'success' | 'error' | 'info') => Promise<void> | void;
+  removeToast: (id: string) => Promise<void> | void;
 
   // Actions Auth / Session
-  login: (id: string) => void;
-  logout: () => void;
+  login: (id: string) => Promise<void> | void;
+  logout: () => Promise<void> | void;
 
   // Actions Usuarios
-  addUsuario: (u: Omit<Usuario, 'id'>) => void;
-  updateUsuario: (id: string, u: Partial<Usuario>) => void;
-  removeUsuario: (id: string) => void;
+  addUsuario: (u: Omit<Usuario, 'id'>) => Promise<void> | void;
+  updateUsuario: (id: string, u: Partial<Usuario>) => Promise<void> | void;
+  removeUsuario: (id: string) => Promise<void> | void;
 
   // Actions Planos
-  addPlano: (p: Omit<Plano, 'id'>) => void;
-  updatePlano: (id: string, p: Partial<Plano>) => void;
-  removePlano: (id: string) => void;
+  addPlano: (p: Omit<Plano, 'id'>) => Promise<void> | void;
+  updatePlano: (id: string, p: Partial<Plano>) => Promise<void> | void;
+  removePlano: (id: string) => Promise<void> | void;
 
   // Actions Cursos
-  addCurso: (c: Omit<Curso, 'id' | 'totalAulas' | 'totalHoras'>) => void;
-  updateCurso: (id: string, c: Partial<Curso>) => void;
-  removeCurso: (id: string) => void;
+  addCurso: (c: Omit<Curso, 'id' | 'totalAulas' | 'totalHoras'>) => Promise<void> | void;
+  updateCurso: (id: string, c: Partial<Curso>) => Promise<void> | void;
+  removeCurso: (id: string) => Promise<void> | void;
   
   // Actions Modulos
-  addModulo: (m: Omit<Modulo, 'id'>) => void;
-  updateModulo: (id: string, m: Partial<Modulo>) => void;
-  removeModulo: (id: string) => void;
+  addModulo: (m: Omit<Modulo, 'id'>) => Promise<void> | void;
+  updateModulo: (id: string, m: Partial<Modulo>) => Promise<void> | void;
+  removeModulo: (id: string) => Promise<void> | void;
 
   // Actions Aulas
-  addAula: (a: Omit<Aula, 'id'>) => void;
-  updateAula: (id: string, a: Partial<Aula>) => void;
-  removeAula: (id: string) => void;
+  addAula: (a: Omit<Aula, 'id'>) => Promise<void> | void;
+  updateAula: (id: string, a: Partial<Aula>) => Promise<void> | void;
+  removeAula: (id: string) => Promise<void> | void;
 
   // Actions Trilhas
-  addTrilha: (t: Omit<Trilha, 'id'>) => void;
-  updateTrilha: (id: string, t: Partial<Trilha>) => void;
-  removeTrilha: (id: string) => void;
+  addTrilha: (t: Omit<Trilha, 'id'>) => Promise<void> | void;
+  updateTrilha: (id: string, t: Partial<Trilha>) => Promise<void> | void;
+  removeTrilha: (id: string) => Promise<void> | void;
   
   // TrilhaCurso (Associativa)
-  addTrilhaCurso: (tc: Omit<TrilhaCurso, 'id'>) => void;
-  updateTrilhaCurso: (id: string, tc: Partial<TrilhaCurso>) => void;
-  removeTrilhaCurso: (id: string) => void;
+  addTrilhaCurso: (tc: Omit<TrilhaCurso, 'id'>) => Promise<void> | void;
+  updateTrilhaCurso: (id: string, tc: Partial<TrilhaCurso>) => Promise<void> | void;
+  removeTrilhaCurso: (id: string) => Promise<void> | void;
 
   // Assinaturas e Pagamentos
-  simularAssinatura: (usuarioId: string, planoId: string, metodo: 'Cartao' | 'Pix' | 'Boleto') => void;
-  updateAssinatura: (id: string, a: Partial<Assinatura>) => void;
-  removeAssinatura: (id: string) => void;
+  simularAssinatura: (usuarioId: string, planoId: string, metodoPagamento: 'Cartao' | 'Boleto' | 'Pix') => Promise<void> | void;
+  updateAssinatura: (id: string, a: Partial<Assinatura>) => Promise<void> | void;
+  removeAssinatura: (id: string) => Promise<void> | void;
+
+  // Categoria Actions
+  addCategoria: (cat: Omit<Categoria, 'id'>) => Promise<void> | void;
+  updateCategoria: (id: string, cat: Partial<Categoria>) => Promise<void> | void;
+  removeCategoria: (id: string) => Promise<void> | void;
+
+  // Avaliacoes Actions
+  addAvaliacao: (av: Omit<Avaliacao, 'id' | 'dataAvaliacao'>) => Promise<void> | void;
 
   // Matriculas
-  matricular: (usuarioId: string, cursoId: string) => void;
+  matricular: (usuarioId: string, cursoId: string) => Promise<void> | void;
   
   // Certificados
-  emitirCertificado: (usuarioId: string, cursoId?: string, trilhaId?: string) => void;
-  updateCertificado: (id: string, c: Partial<Certificado>) => void;
-  removeCertificado: (id: string) => void;
+  emitirCertificado: (usuarioId: string, cursoId?: string, trilhaId?: string) => Promise<void> | void;
+  updateCertificado: (id: string, c: Partial<Certificado>) => Promise<void> | void;
+  removeCertificado: (id: string) => Promise<void> | void;
   // Actions Progressos
-  atualizarProgresso: (aulaId: string, status: 'Nao Iniciado' | 'Em Andamento' | 'Concluido') => void;
+  atualizarProgresso: (aulaId: string, status: 'Nao Iniciado' | 'Em Andamento' | 'Concluido') => Promise<void> | void;
 };
 
+
+export const apiPost = async (ep: string, data: any) => fetch(`${API_URL}/${ep}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(console.error);
+export const apiPut = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(console.error);
+export const apiPatch = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(console.error);
+export const apiDelete = async (ep: string, id: string) => fetch(`${API_URL}/${ep}/${id}`, { method: 'DELETE' }).catch(console.error);
+
 export const useEstudosStore = create<EstudosState>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       usuarioLogadoId: null,
       usuarios: [],
+      categorias: [],
       planos: [],
       cursos: [],
       modulos: [],
@@ -109,7 +130,33 @@ export const useEstudosStore = create<EstudosState>()(
       matriculas: [],
       progressos: [],
       certificados: [],
+      avaliacoes: [],
       toasts: [],
+      fetchInitialData: async () => {
+        try {
+          const endpoints = ['usuarios', 'categorias', 'planos', 'cursos', 'modulos', 'aulas', 'trilhas', 'trilhasCursos', 'assinaturas', 'pagamentos', 'matriculas', 'progressos', 'certificados', 'avaliacoes'];
+          const results = await Promise.all(endpoints.map(ep => fetch(`${API_URL}/${ep}`).then(res => res.json())));
+          set({
+            usuarios: results[0] || [],
+            categorias: results[1] || [],
+            planos: results[2] || [],
+            cursos: results[3] || [],
+            modulos: results[4] || [],
+            aulas: results[5] || [],
+            trilhas: results[6] || [],
+            trilhasCursos: results[7] || [],
+            assinaturas: results[8] || [],
+            pagamentos: results[9] || [],
+            matriculas: results[10] || [],
+            progressos: results[11] || [],
+            certificados: results[12] || [],
+            avaliacoes: results[13] || []
+          });
+        } catch (e) {
+          console.error('Erro ao conectar com JSON Server:', e);
+        }
+      },
+
 
       // TOASTS
       addToast: (message, type = 'info') => set((state) => ({ toasts: [...state.toasts, { id: uuidv4(), message, type }] })),
@@ -120,19 +167,19 @@ export const useEstudosStore = create<EstudosState>()(
       logout: () => set({ usuarioLogadoId: null }),
 
       // USUARIOS
-      addUsuario: (u) => set((state) => ({ usuarios: [...state.usuarios, { ...u, id: uuidv4() }] })),
-      updateUsuario: (id, u) => set((state) => ({ usuarios: state.usuarios.map(usr => usr.id === id ? { ...usr, ...u } : usr) })),
-      removeUsuario: (id) => set((state) => ({ usuarios: state.usuarios.filter(usr => usr.id !== id) })),
+      addUsuario: async (u) => { const novo = { ...u, id: uuidv4(), dataCadastro: new Date().toISOString()  }; await apiPost('usuarios', novo); set(state => ({ usuarios: [...state.usuarios, novo] })); },
+      updateUsuario: (id, u) => set((state) => ({ usuarios: state.usuarios.map((user) => (user.id === id ? { ...user, ...u } : user)) })),
+      removeUsuario: async (id) => { await apiDelete('usuarios', id); set(state => ({ usuarios: state.usuarios.filter(usr => usr.id !== id) })); },
 
       // PLANOS
-      addPlano: (p) => set((state) => ({ planos: [...state.planos, { ...p, id: uuidv4() }] })),
-      updatePlano: (id, p) => set((state) => ({ planos: state.planos.map(pl => pl.id === id ? { ...pl, ...p } : pl) })),
-      removePlano: (id) => set((state) => ({ planos: state.planos.filter(pl => pl.id !== id) })),
+      addPlano: async (p) => { const novo = { ...p, id: uuidv4()  }; await apiPost('planos', novo); set(state => ({ planos: [...state.planos, novo] })); },
+      updatePlano: async (id, p) => { await apiPatch('planos', id, p); set(state => ({ planos: state.planos.map(pl => pl.id === id ? { ...pl, ...p } : pl) })); },
+      removePlano: async (id) => { await apiDelete('planos', id); set(state => ({ planos: state.planos.filter(pl => pl.id !== id) })); },
 
       // CURSOS
-      addCurso: (c) => set((state) => ({ cursos: [...state.cursos, { ...c, id: uuidv4(), totalAulas: 0, totalHoras: 0 }] })),
-      updateCurso: (id, c) => set((state) => ({ cursos: state.cursos.map(cr => cr.id === id ? { ...cr, ...c } : cr) })),
-      removeCurso: (id) => set((state) => ({ cursos: state.cursos.filter(cr => cr.id !== id) })),
+      addCurso: async (c) => { const novo = { ...c, id: uuidv4(), totalAulas: 0, totalHoras: 0  }; await apiPost('cursos', novo); set(state => ({ cursos: [...state.cursos, novo] })); },
+      updateCurso: async (id, c) => { await apiPatch('cursos', id, c); set(state => ({ cursos: state.cursos.map(cr => cr.id === id ? { ...cr, ...c } : cr) })); },
+      removeCurso: async (id) => { await apiDelete('cursos', id); set(state => ({ cursos: state.cursos.filter(cr => cr.id !== id) })); },
 
       // MÓDULOS
       addModulo: (m) => set((state) => {
@@ -234,9 +281,9 @@ export const useEstudosStore = create<EstudosState>()(
       }),
 
       // TRILHAS
-      addTrilha: (t) => set((state) => ({ trilhas: [...state.trilhas, { ...t, id: uuidv4() }] })),
-      updateTrilha: (id, t) => set((state) => ({ trilhas: state.trilhas.map(tr => tr.id === id ? { ...tr, ...t } : tr) })),
-      removeTrilha: (id) => set((state) => ({ trilhas: state.trilhas.filter(tr => tr.id !== id) })),
+      addTrilha: async (t) => { const novo = { ...t, id: uuidv4()  }; await apiPost('trilhas', novo); set(state => ({ trilhas: [...state.trilhas, novo] })); },
+      updateTrilha: async (id, t) => { await apiPatch('trilhas', id, t); set(state => ({ trilhas: state.trilhas.map(tr => tr.id === id ? { ...tr, ...t } : tr) })); },
+      removeTrilha: async (id) => { await apiDelete('trilhas', id); set(state => ({ trilhas: state.trilhas.filter(tr => tr.id !== id) })); },
       
       addTrilhaCurso: (tc) => set((state) => {
          const exists = state.trilhasCursos.some(t => t.trilhaId === tc.trilhaId && t.cursoId === tc.cursoId);
@@ -250,16 +297,15 @@ export const useEstudosStore = create<EstudosState>()(
       removeTrilhaCurso: (id) => set((state) => ({ trilhasCursos: state.trilhasCursos.filter(t => t.id !== id) })),
 
       // SIMULAR ASSINATURA
-      simularAssinatura: (usuarioId, planoId, metodo) => set((state) => {
+      simularAssinatura: (usuarioId, planoId, metodoPagamento) => set((state) => {
          const plano = state.planos.find(p => p.id === planoId);
          if (!plano) return state;
 
          const hoje = new Date();
          const dataFim = addMonths(hoje, plano.duracaoMeses).toISOString();
-         const assinaturaId = uuidv4();
          
          const novaAssinatura: Assinatura = {
-            id: assinaturaId,
+            id: uuidv4(),
             usuarioId,
             planoId,
             dataInicio: hoje.toISOString(),
@@ -268,11 +314,11 @@ export const useEstudosStore = create<EstudosState>()(
 
          const novoPagamento: Pagamento = {
              id: uuidv4(),
-             assinaturaId,
+             assinaturaId: novaAssinatura.id,
              valorPago: plano.preco,
              dataPagamento: hoje.toISOString(),
-             metodo,
-             idTransacao: `TXN-${hoje.getFullYear()}${(hoje.getMonth()+1).toString().padStart(2, '0')}${hoje.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+             metodo: metodoPagamento,
+             idTransacao: uuidv4()
          };
 
          return {
@@ -285,6 +331,14 @@ export const useEstudosStore = create<EstudosState>()(
         assinaturas: state.assinaturas.filter(ass => ass.id !== id),
         pagamentos: state.pagamentos.filter(pg => pg.assinaturaId !== id)
       })),
+
+      // CATEGORIAS
+      addCategoria: async (cat) => { const novo = { ...cat, id: uuidv4()  }; await apiPost('categorias', novo); set(state => ({ categorias: [...state.categorias, novo] })); },
+      updateCategoria: async (id, cat) => { await apiPatch('categorias', id, cat); set(state => ({ categorias: state.categorias.map(c => c.id === id ? { ...c, ...cat } : c) })); },
+      removeCategoria: async (id) => { await apiDelete('categorias', id); set(state => ({ categorias: state.categorias.filter(c => c.id !== id) })); },
+
+      // AVALIAÇÕES
+      addAvaliacao: async (av) => { const novo = { ...av, id: uuidv4(), dataAvaliacao: new Date().toISOString()  }; await apiPost('avaliacoes', novo); set(state => ({ avaliacoes: [...state.avaliacoes, novo] })); },
 
       // MATRICULAR
       matricular: (usuarioId, cursoId) => set((state) => {
@@ -361,6 +415,14 @@ export const useEstudosStore = create<EstudosState>()(
                          const jaTem = certificados.some(c => c.usuarioId === usuarioLogadoId && c.cursoId === cursoId);
                          if (!jaTem) {
                              const codigo = `EST-${new Date().getFullYear()}-${uuidv4().substring(0,8).toUpperCase()}`;
+                             // Atualiza dataConclusao da Matricula
+                             state.matriculas = state.matriculas.map(m => {
+                                 if (m.usuarioId === usuarioLogadoId && m.cursoId === cursoId) {
+                                     return { ...m, dataConclusao: new Date().toISOString() };
+                                 }
+                                 return m;
+                             });
+
                              state.certificados.push({
                                  id: uuidv4(),
                                  usuarioId: usuarioLogadoId,
@@ -416,9 +478,5 @@ export const useEstudosStore = create<EstudosState>()(
 
          return { progressos: newProgressos, certificados: [...state.certificados] };
       })
-    }),
-    {
-      name: 'estudaae-storage',
-    }
-  )
+    })
 );

@@ -1,0 +1,22 @@
+{
+  "usuarios": [],
+  "categorias": [
+    {
+      "nome": "teste",
+      "descricao": "teste",
+      "id": "ab737379-ae8b-4809-af58-04911f53f864"
+    }
+  ],
+  "planos": [],
+  "cursos": [],
+  "modulos": [],
+  "aulas": [],
+  "trilhas": [],
+  "trilhasCursos": [],
+  "assinaturas": [],
+  "pagamentos": [],
+  "matriculas": [],
+  "progressos": [],
+  "certificados": [],
+  "avaliacoes": []
+}

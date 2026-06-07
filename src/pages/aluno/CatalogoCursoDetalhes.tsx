@@ -1,14 +1,18 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEstudosStore } from '../../store/useEstudosStore';
-import { PlayCircle, Clock, BookOpen, User, Lock, CheckCircle, ArrowLeft } from 'lucide-react';
+import { PlayCircle, Clock, BookOpen, User, Lock, CheckCircle, ArrowLeft, Star, MessageSquare } from 'lucide-react';
 
 export default function CatalogoCursoDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cursos, modulos, aulas, assinaturas, usuarioLogadoId } = useEstudosStore();
+  const { cursos, modulos, aulas, assinaturas, usuarioLogadoId, categorias, avaliacoes, usuarios } = useEstudosStore();
 
   const curso = cursos.find(c => c.id === id);
   const modulosCurso = modulos.filter(m => m.cursoId === id).sort((a, b) => a.ordem - b.ordem);
+  const avaliacoesDoCurso = avaliacoes.filter(a => a.cursoId === id);
+  const mediaAvaliacao = avaliacoesDoCurso.length > 0 
+    ? (avaliacoesDoCurso.reduce((acc, curr) => acc + curr.nota, 0) / avaliacoesDoCurso.length).toFixed(1) 
+    : 'Sem avaliações';
 
   if (!curso) {
     return <div className="text-white text-center py-5">Curso não encontrado.</div>;
@@ -35,13 +39,16 @@ export default function CatalogoCursoDetalhes() {
         <div className="p-5 d-flex flex-column justify-content-end position-relative" style={{ minHeight: '300px', background: 'linear-gradient(to right, rgba(0,0,0,0.9), rgba(0,0,0,0.4)), linear-gradient(45deg, var(--primary-dark), var(--primary))' }}>
           <div className="position-relative" style={{ zIndex: 2 }}>
             <div className="d-flex gap-2 mb-3">
-              <span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">{curso.categoria}</span>
+              <span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
+                {categorias.find(c => c.id === curso.categoria)?.nome || curso.categoria}
+              </span>
               <span className="badge bg-secondary bg-opacity-25 text-white">{curso.nivel}</span>
             </div>
             <h1 className="text-white fw-bold mb-3 display-5">{curso.titulo}</h1>
             <p className="text-white opacity-75 mb-4 fs-5" style={{ maxWidth: '700px' }}>{curso.descricao}</p>
             
             <div className="d-flex flex-wrap align-items-center gap-4 text-white opacity-75 mb-4">
+              <span className="d-flex align-items-center gap-2 text-warning fw-bold"><Star size={18} fill="currentColor"/> {mediaAvaliacao}</span>
               <span className="d-flex align-items-center gap-2"><User size={18}/> {curso.instrutor}</span>
               <span className="d-flex align-items-center gap-2"><Clock size={18}/> {curso.totalHoras} horas</span>
               <span className="d-flex align-items-center gap-2"><BookOpen size={18}/> {curso.totalAulas} aulas</span>
@@ -127,6 +134,38 @@ export default function CatalogoCursoDetalhes() {
               </ul>
             </div>
           </div>
+
+          {/* AVALIAÇÕES */}
+          <div className="card border-0 bg-dark shadow-sm mt-4" style={{ borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+            <div className="card-body p-4">
+              <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2">
+                <MessageSquare size={20} className="text-primary"/> Avaliações
+              </h5>
+              
+              <div className="d-flex flex-column gap-3">
+                {avaliacoesDoCurso.map(av => (
+                  <div key={av.id} className="p-3 bg-dark border rounded" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="fw-bold text-white small">
+                        {usuarios.find(u => u.id === av.usuarioId)?.nome || 'Aluno'}
+                      </span>
+                      <div className="d-flex text-warning">
+                        {[1,2,3,4,5].map(n => <Star key={n} size={14} fill={n <= av.nota ? "currentColor" : "none"} />)}
+                      </div>
+                    </div>
+                    {av.comentario && <p className="text-muted small mb-0 font-italic">"{av.comentario}"</p>}
+                    <div className="text-muted mt-2" style={{ fontSize: '0.65rem' }}>{new Date(av.dataAvaliacao).toLocaleDateString()}</div>
+                  </div>
+                ))}
+                {avaliacoesDoCurso.length === 0 && (
+                  <div className="text-muted small text-center p-3 border border-secondary border-opacity-25 rounded bg-dark bg-opacity-50">
+                    Nenhum aluno avaliou este curso ainda.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
