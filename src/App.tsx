@@ -43,35 +43,34 @@ function App() {
     <>
       <ToastContainer />
       <Routes>
-      <Route path="/" element={<SelecaoPerfil />} />
-      
-      {/* Rotas de Admin */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="cursos" replace />} />
-        <Route path="categorias" element={<Categorias />} />
-        <Route path="trilhas" element={<Trilhas />} />
-        <Route path="cursos" element={<Cursos />} />
-        <Route path="cursos/:id" element={<DetalhesCurso />} />
-        <Route path="modulos" element={<Modulos />} />
-        <Route path="aulas" element={<Aulas />} />
-        <Route path="usuarios" element={<Usuarios />} />
-        <Route path="planos" element={<Planos />} />
-        <Route path="assinaturas" element={<Assinaturas />} />
-        <Route path="certificados" element={<Certificados />} />
-      </Route>
+        <Route path="/" element={<SelecaoPerfil />} />
 
-      {/* Rotas do Aluno */}
-      <Route path="/aluno" element={<AlunoLayout />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AlunoDashboard />} />
-        <Route path="cursos/:id" element={<CatalogoCursoDetalhes />} />
-        <Route path="trilhas/:id" element={<CatalogoTrilhaDetalhes />} />
-        <Route path="assinaturas" element={<AlunoAssinaturas />} />
-        <Route path="sala-aula/:id" element={<SalaDeAula />} />
-        <Route path="certificados" element={<AlunoCertificados />} />
-        {/* Futuras rotas de LMS ficarão aqui */}
-      </Route>
-    </Routes>
+        {/* Rotas de Admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="cursos" replace />} />
+          <Route path="categorias" element={<Categorias />} />
+          <Route path="trilhas" element={<Trilhas />} />
+          <Route path="cursos" element={<Cursos />} />
+          <Route path="cursos/:id" element={<DetalhesCurso />} />
+          <Route path="modulos" element={<Modulos />} />
+          <Route path="aulas" element={<Aulas />} />
+          <Route path="usuarios" element={<Usuarios />} />
+          <Route path="planos" element={<Planos />} />
+          <Route path="assinaturas" element={<Assinaturas />} />
+          <Route path="certificados" element={<Certificados />} />
+        </Route>
+
+        {/* Rotas do Aluno */}
+        <Route path="/aluno" element={<AlunoLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AlunoDashboard />} />
+          <Route path="cursos/:id" element={<CatalogoCursoDetalhes />} />
+          <Route path="trilhas/:id" element={<CatalogoTrilhaDetalhes />} />
+          <Route path="assinaturas" element={<AlunoAssinaturas />} />
+          <Route path="sala-aula/:id" element={<SalaDeAula />} />
+          <Route path="certificados" element={<AlunoCertificados />} />
+        </Route>
+      </Routes>
     </>
   );
 }
