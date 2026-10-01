@@ -20,7 +20,37 @@ export type Avaliacao = { id: string; usuarioId: string; cursoId: string; nota: 
 export type Certificado = { id: string; usuarioId: string; cursoId?: string; trilhaId?: string; codigoValidacao: string; dataEmissao: string };
 export type ToastMessage = { id: string; message: string; type: 'success' | 'error' | 'info' };
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3000';
+
+const mapToPrisma = (data: any) => {
+  if (!data) return data;
+  const result = { ...data };
+  if ('categoria' in result) { result.categoriaId = result.categoria; delete result.categoria; }
+  if ('instrutor' in result) { result.instrutorId = result.instrutor; delete result.instrutor; }
+  if ('tipo' in result) { result.tipoConteudo = result.tipo; delete result.tipo; }
+  if ('url' in result) { result.urlConteudo = result.url; delete result.url; }
+  if ('metodo' in result) { result.metodoPagamento = result.metodo; delete result.metodo; }
+  if ('idTransacao' in result) { result.idTransacaoGateway = result.idTransacao; delete result.idTransacao; }
+  if ('codigoValidacao' in result) { result.codigoVerificacao = result.codigoValidacao; delete result.codigoValidacao; }
+  if ('nome' in result) { result.nomeCompleto = result.nome; delete result.nome; }
+  if ('senha' in result) { result.senhaHash = result.senha; delete result.senha; }
+  return result;
+};
+
+const mapFromPrisma = (data: any) => {
+  if (!data) return data;
+  const result = { ...data };
+  if ('categoriaId' in result) { result.categoria = result.categoriaId; delete result.categoriaId; }
+  if ('instrutorId' in result) { result.instrutor = result.instrutorId; delete result.instrutorId; }
+  if ('tipoConteudo' in result) { result.tipo = result.tipoConteudo; delete result.tipoConteudo; }
+  if ('urlConteudo' in result) { result.url = result.urlConteudo; delete result.urlConteudo; }
+  if ('metodoPagamento' in result) { result.metodo = result.metodoPagamento; delete result.metodoPagamento; }
+  if ('idTransacaoGateway' in result) { result.idTransacao = result.idTransacaoGateway; delete result.idTransacaoGateway; }
+  if ('codigoVerificacao' in result) { result.codigoValidacao = result.codigoVerificacao; delete result.codigoVerificacao; }
+  if ('nomeCompleto' in result) { result.nome = result.nomeCompleto; delete result.nomeCompleto; }
+  if ('senhaHash' in result) { result.senha = result.senhaHash; delete result.senhaHash; }
+  return result;
+};
 
 type EstudosState = {
   fetchInitialData: () => Promise<void>;
@@ -109,9 +139,9 @@ type EstudosState = {
 };
 
 
-export const apiPost = async (ep: string, data: any) => fetch(`${API_URL}/${ep}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).catch(console.error);
-export const apiPut = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).catch(console.error);
-export const apiPatch = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).catch(console.error);
+export const apiPost = async (ep: string, data: any) => fetch(`${API_URL}/${ep}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mapToPrisma(data)) }).catch(console.error);
+export const apiPut = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mapToPrisma(data)) }).catch(console.error);
+export const apiPatch = async (ep: string, id: string, data: any) => fetch(`${API_URL}/${ep}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mapToPrisma(data)) }).catch(console.error);
 export const apiDelete = async (ep: string, id: string) => fetch(`${API_URL}/${ep}/${id}`, { method: 'DELETE' }).catch(console.error);
 
 export const useEstudosStore = create<EstudosState>()(
@@ -134,8 +164,16 @@ export const useEstudosStore = create<EstudosState>()(
     toasts: [],
     fetchInitialData: async () => {
       try {
-        const endpoints = ['usuarios', 'categorias', 'planos', 'cursos', 'modulos', 'aulas', 'trilhas', 'trilhasCursos', 'assinaturas', 'pagamentos', 'matriculas', 'progressos', 'certificados', 'avaliacoes'];
-        const results = await Promise.all(endpoints.map(ep => fetch(`${API_URL}/${ep}`).then(res => res.json())));
+        const endpoints = ['usuarios', 'categorias', 'planos', 'cursos', 'modulos', 'aulas', 'trilhas', 'trilhas-cursos', 'assinaturas', 'pagamentos', 'matriculas', 'progressos', 'certificados', 'avaliacoes'];
+        
+        const resultsPromises = endpoints.map(ep => 
+          fetch(`${API_URL}/${ep}`)
+            .then(res => res.json())
+            .then(data => Array.isArray(data) ? data.map(mapFromPrisma) : [])
+        );
+
+        const results = await Promise.all(resultsPromises);
+
         set({
           usuarios: results[0] || [],
           categorias: results[1] || [],
@@ -153,7 +191,7 @@ export const useEstudosStore = create<EstudosState>()(
           avaliacoes: results[13] || []
         });
       } catch (e) {
-        console.error('Erro ao conectar com JSON Server:', e);
+        console.error('Erro ao conectar com a API NestJS:', e);
       }
     },
 
@@ -167,9 +205,21 @@ export const useEstudosStore = create<EstudosState>()(
     logout: () => set({ usuarioLogadoId: null }),
 
     // USUARIOS
-    addUsuario: async (u) => { const novo = { ...u, id: uuidv4(), dataCadastro: new Date().toISOString() }; await apiPost('usuarios', novo); set(state => ({ usuarios: [...state.usuarios, novo] })); },
-    updateUsuario: (id, u) => set((state) => ({ usuarios: state.usuarios.map((user) => (user.id === id ? { ...user, ...u } : user)) })),
-    removeUsuario: async (id) => { await apiDelete('usuarios', id); set(state => ({ usuarios: state.usuarios.filter(usr => usr.id !== id) })); },
+    addUsuario: async (u) => { 
+      const novo = { ...u, id: uuidv4(), dataCadastro: new Date().toISOString() };
+      // Fallback de senha obrigatória
+      if (!novo.senha) novo.senha = '123456';
+      await apiPost('usuarios', novo); 
+      set(state => ({ usuarios: [...state.usuarios, novo] })); 
+    },
+    updateUsuario: async (id, u) => {
+      await apiPatch('usuarios', id, u);
+      set((state) => ({ usuarios: state.usuarios.map((user) => (user.id === id ? { ...user, ...u } : user)) }));
+    },
+    removeUsuario: async (id) => { 
+      await apiDelete('usuarios', id);
+      set(state => ({ usuarios: state.usuarios.filter(usr => usr.id !== id) })); 
+    },
 
     // PLANOS
     addPlano: async (p) => { const novo = { ...p, id: uuidv4() }; await apiPost('planos', novo); set(state => ({ planos: [...state.planos, novo] })); },
