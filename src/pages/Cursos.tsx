@@ -11,6 +11,7 @@ export default function Cursos() {
   const [descricao, setDescricao] = useState('');
   const [instrutor, setInstrutor] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [categoriaDropdownOpen, setCategoriaDropdownOpen] = useState(false);
   const [nivel, setNivel] = useState('Iniciante');
   const [nivelDropdownOpen, setNivelDropdownOpen] = useState(false);
   const [cursoEditando, setCursoEditando] = useState<string | null>(null);
@@ -109,18 +110,49 @@ export default function Cursos() {
                 
                 <div className="row g-3">
                   <div className="col-12 col-md-6">
-                    <label className="form-label text-muted small">Categoria</label>
-                    <select 
-                      className="form-select bg-dark text-white border-secondary" 
-                      value={categoria}
-                      onChange={e => setCategoria(e.target.value)}
-                      required
-                    >
-                      <option value="">Selecione uma categoria...</option>
-                      {categorias.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                      ))}
-                    </select>
+                    <label className="form-label d-flex align-items-center gap-2">
+                      <Bookmark size={16} /> Categoria
+                    </label>
+                    <div className="position-relative mt-1">
+                      <div className="d-flex align-items-stretch" style={{ height: '48px' }}>
+                        <div className="d-flex align-items-center justify-content-center px-3 rounded-start border border-end-0" style={{ background: 'var(--surface)', borderColor: 'var(--border-subtle)', color: 'var(--primary)' }}>
+                          <Bookmark size={18} />
+                        </div>
+                        <div 
+                          className="flex-grow-1 d-flex align-items-center justify-content-between px-3 border rounded-end cursor-pointer"
+                          style={{ background: 'var(--surface)', borderColor: 'var(--primary)', cursor: 'pointer' }}
+                          onClick={() => setCategoriaDropdownOpen(!categoriaDropdownOpen)}
+                        >
+                          <span className={categoria ? "text-white" : "text-muted"}>
+                            {categoria ? categorias.find(c => c.id === categoria)?.nome || 'Categoria não encontrada' : 'Selecione uma categoria...'}
+                          </span>
+                          <ChevronDown size={18} className="text-muted" style={{ transform: categoriaDropdownOpen ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                        </div>
+                      </div>
+                      
+                      {categoriaDropdownOpen && (
+                        <>
+                          <div className="position-fixed top-0 bottom-0 start-0 end-0" onClick={() => setCategoriaDropdownOpen(false)} style={{ zIndex: 10 }}></div>
+                          <div className="position-absolute w-100 mt-1 rounded border shadow-lg" style={{ background: 'var(--bg-color)', borderColor: 'var(--border-subtle)', zIndex: 11, maxHeight: '200px', overflowY: 'auto' }}>
+                            <div 
+                              className={`px-3 py-2 cursor-pointer ${!categoria ? 'bg-primary text-white' : 'text-white hover-bg'}`}
+                              onClick={() => { setCategoria(''); setCategoriaDropdownOpen(false); }}
+                            >
+                              Selecione uma categoria...
+                            </div>
+                            {categorias.map(cat => (
+                              <div 
+                                key={cat.id}
+                                className={`px-3 py-2 cursor-pointer ${categoria === cat.id ? 'bg-primary text-white' : 'text-white hover-bg'}`}
+                                onClick={() => { setCategoria(cat.id); setCategoriaDropdownOpen(false); }}
+                              >
+                                {cat.nome}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="col-6">
                     <label className="form-label d-flex align-items-center gap-2">
